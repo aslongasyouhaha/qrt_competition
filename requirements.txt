@@ -1,0 +1,10 @@
+numpy
+pandas
+scikit-learn
+catboost
+torch
+tqdm
+matplotlib
+seaborn
+ipython
+ipykernel

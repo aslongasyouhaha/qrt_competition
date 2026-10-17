@@ -1,0 +1,22 @@
+# Publish only the final training framework, data, and presentation.
+/*
+!/.gitignore
+!/.gitattributes
+!/README.md
+!/summary.md
+!/analysis.ipynb
+!/requirements.txt
+!/data/
+!/qrt/
+!/scripts/
+
+/scripts/*
+!/scripts/python/
+/scripts/python/*
+!/scripts/python/run_pipeline.py
+
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+artifacts/
+.venv/
