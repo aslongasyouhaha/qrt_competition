@@ -14,7 +14,7 @@
 ├── requirements.txt
 ├── data/                       # 原始输入数据
 ├── qrt/                        # 最终方案的特征、训练与融合代码
-└── scripts/python/
+└── scripts/
     └── run_pipeline.py          # 统一训练入口
 ```
 
@@ -44,22 +44,22 @@ VS Code 或 Jupyter 可打开 `analysis.ipynb`。Notebook 已保存展示输出�
 ## 执行训练
 
 ```powershell
-python scripts/python/run_pipeline.py --dry-run
-python scripts/python/run_pipeline.py
+python scripts/run_pipeline.py --dry-run
+python scripts/run_pipeline.py
 ```
 
 默认依次训练 CatBoost、训练 GRU、搜索融合权重并生成提交。输入目录为 `data/`，输出目录为 `artifacts/`。自定义路径与设备：
 
 ```powershell
-python scripts/python/run_pipeline.py --data-dir data --output-dir artifacts --device cuda
+python scripts/run_pipeline.py --data-dir data --output-dir artifacts --device cuda
 ```
 
 也可分阶段执行：
 
 ```powershell
-python scripts/python/run_pipeline.py --stage catboost
-python scripts/python/run_pipeline.py --stage gru
-python scripts/python/run_pipeline.py --stage blend
+python scripts/run_pipeline.py --stage catboost
+python scripts/run_pipeline.py --stage gru
+python scripts/run_pipeline.py --stage blend
 ```
 
 融合阶段要求前两个阶段已在同一输出目录生成 OOF 和测试分数。多 seed、多折及局部专家训练可能耗时；重复执行会写入同名结果，保留不同实验时请指定新的输出目录。

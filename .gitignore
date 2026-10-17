@@ -11,9 +11,7 @@
 !/scripts/
 
 /scripts/*
-!/scripts/python/
-/scripts/python/*
-!/scripts/python/run_pipeline.py
+!/scripts/run_pipeline.py
 
 __pycache__/
 *.pyc
