@@ -1,37 +1,37 @@
-# QRT 分层建模与融合实验总结
+# QRT: Hierarchical Modeling and Ensemble Experiments
 
-## 研究问题
+## Research questions
 
-利用历史收益、成交量与横截面信息预测收益方向，研究不同对象之间应共享多少规律，以及局部修正是否能补充共享模型。训练集包含 527073 行、278 个 allocation、2522 个 TS，目标非负占比为 50.7184%。
+Predict return direction from historical returns, volume, and cross-sectional information. The central questions are how much structure should be shared across instruments and whether local corrections complement a shared model. The training set contains 527073 rows, 278 allocations, and 2522 timestamps (TS); 50.7184% of targets are nonnegative.
 
-## 建模思路与经济假设
+## Modeling ideas and economic assumptions
 
-Global 模型检验不同对象是否存在可共享的量价关系；group 或 cluster 专家允许部分对象具有不同的条件关系；allocation 残差用于修正个体差异。CatBoost 学习统计特征与非线性交互，GRU 学习历史序列模式，再检验两者是否互补。
+The global model tests for shared price–volume relationships. Group and cluster experts allow conditional relationships to differ across subsets, while allocation residuals capture instrument-specific differences. CatBoost learns from statistical features and nonlinear interactions; GRU learns historical sequence patterns. The ensemble tests whether these representations complement each other.
 
-这些是建模假设。GROUP 与 ALLOCATION 的真实经济含义没有在当前整理中核实，因此不将它们直接等同于行业或资产类别；cluster 表示特征统计相似性。方向准确率不等于交易收益，本项目未以手续费、换手或风险调整后的收益证明策略可交易。
+These are modeling assumptions. The economic meaning of GROUP and ALLOCATION has not been verified, so they are not treated as industry or asset-class labels. Clusters reflect statistical feature similarity. Directional accuracy is not a trading return; profitability after costs, turnover, and risk adjustment has not been established.
 
-## 核心实验结果
+## Core experimental results
 
-| 路径 | 对照 | OOF accuracy 变化 | 变化百分点 |
+| path | control | OOF accuracy changes | change percentage points |
 | --- | --- | --- | ---: |
-| CatBoost | Global → 加 group 残差 | 52.0524% → 51.8382% | -0.2142 |
-| CatBoost | Cluster → 加 allocation 残差 | 52.1719% → 52.0791% | -0.0928 |
-| GRU 最终基础模型 | Global head → 加 group 残差 | 52.4404% → 52.5743% | +0.1339 |
-| GRU 外层修正 | Global + group → 加 cluster 残差 | 52.5743% → 52.6701% | +0.0958 |
-| 融合 | GRU 标准化输出 → allocation 融合 | 52.6426% → 52.8356% | +0.1930 |
+| CatBoost | Global → add group residuals | 52.0524% → 51.8382% | -0.2142 |
+| CatBoost | Cluster → add allocation residuals | 52.1719% → 52.0791% | -0.0928 |
+| GRU final base model | Global head → add group residuals | 52.4404% → 52.5743% | +0.1339 |
+| GRU outer layer correction | Global + group → add cluster residuals | 52.5743% → 52.6701% | +0.0958 |
+| Fusion | GRU normalized output → allocation fusion | 52.6426% → 52.8356% | +0.1930 |
 
-Global head 是联合训练 GRU 的分支输出，包含标识 embedding，不是独立重训的纯 global 模型。不同历史目录可能同时改变特征、折分或训练参数，对照类型与缺失记录保留在 [展示 notebook](analysis.ipynb) 中。
+The global head is a branch of the jointly trained GRU, including identifier embeddings; it is not a separately trained global-only model. Historical configurations may also differ in features, splits, or training parameters. The [presentation notebook](analysis.ipynb) distinguishes paired branch comparisons from historical architecture comparisons and marks missing records.
 
-最终归档方案为 **cluster CatBoost + allocation 残差**，结合 **global 与 group 联合 GRU + 外层 cluster 残差**，按 allocation 做线性融合。52.8356% 是权重在同一 OOF 上选择后的分数，未据此声称是项目所有实验中的最佳独立成绩。
+The final archived configuration combines **cluster CatBoost + allocation residual** with **joint global/group GRU + outer cluster residual**, using allocation-specific linear blending. Its 52.8356% accuracy is measured on the same OOF predictions used to select the weights. It is not an independent test score or a claim of independently verified superiority over every historical experiment.
 
-## 组件消融说明了什么
+## What does component ablation explain?
 
-固定最终 allocation 权重，关闭 CatBoost allocation 残差后下降 0.4109 个百分点；关闭 GRU 外层 cluster 残差后下降 0.2119 个百分点；移除 CatBoost 或 GRU 整条路径分别下降 0.1930 和 0.8052 个百分点。
+With final allocation weights fixed, removing the CatBoost allocation residual reduces accuracy by 0.4109 percentage points, and removing the GRU outer cluster residual reduces it by 0.2119 points. Removing the entire CatBoost or GRU branch reduces accuracy by 0.1930 and 0.8052 points, respectively.
 
-CatBoost 残差对该模型单独使用时没有增益，在当前融合中却有贡献，说明保留组件时还应考察组合表现。这个结论适用于已训练系统的分支消融；没有移除组件后重新优化剩余模型。
+CatBoost residuals have no gain when the model is used alone, but they contribute in the current fusion, indicating that the combined performance should also be examined when retaining components. This conclusion applies to branch ablation of already trained systems; there is no component removal followed by re-optimization of the remaining model.
 
-## 展示与结果边界
+## Display and result boundaries
 
-[analysis.ipynb](analysis.ipynb) 按数据、特征、模型结构、两路结构对比、融合、组件消融和训练指标展开。历史汇总数据和图片内嵌，不依赖中间模型或逐行预测文件；训练指标仅包含选中 checkpoint，缺少逐 epoch 历史，因此没有展示完整 loss 下降曲线。
+[analysis.ipynb](analysis.ipynb) presents data, features, model structures, comparisons within both model families, blending, component ablations, and training diagnostics. Historical aggregate tables and figures are embedded, so viewing them requires no intermediate models or row-level prediction files. Only selected checkpoints were saved; a complete epoch-by-epoch loss curve is unavailable.
 
-当前验证不等于严格的向前滚动预测，部分预处理使用完整训练特征，融合权重选择和报分使用同一份 OOF。结构与分支结果支持当前样本上的解释，独立时间段的泛化及经济收益仍需要单独评估。复现命令与产物位置见 [README.md](README.md)。
+The current verification is not equivalent to strict forward rolling prediction. Some preprocessing uses complete training features, and the same OOF is used for fusion weight selection and score reporting. The structure and branching results support the interpretation on the current sample, and generalization and economic benefits in independent time periods still need to be evaluated separately. See [README.md](README.md) for the reproduction command and product location.

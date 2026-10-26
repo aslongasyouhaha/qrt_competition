@@ -1,10 +1,10 @@
-# QRT 收益方向预测
+# QRT earnings direction forecast
 
-最终训练框架：cluster CatBoost 与 allocation 残差，结合 global 与 group 联合 GRU 及 cluster 残差，再按 allocation 线性融合。
+The final training framework: cluster CatBoost and allocation residuals, combined with global and group GRU and cluster residuals, and then linearly fused according to allocation.
 
-实验展示见 [analysis.ipynb](analysis.ipynb)，研究思路与结论见 [summary.md](summary.md)。Notebook 内嵌汇总表与图片，阅读和运行不需要中间模型及历史预测文件。
+For experimental demonstration, see [analysis.ipynb](analysis.ipynb), and for research ideas and conclusions, see [summary.md](summary.md). Notebook has built-in summary tables and pictures, and no intermediate model or historical prediction files are required for reading and running.
 
-## 目录
+## Directory
 
 ```text
 .
@@ -12,49 +12,49 @@
 ├── summary.md
 ├── analysis.ipynb
 ├── requirements.txt
-├── data/                       # 原始输入数据
-├── qrt/                        # 最终方案的特征、训练与融合代码
+├── data/ # Original input data
+├── qrt/ # Features, training and fusion code of the final solution
 └── scripts/
-    └── run_pipeline.py          # 统一训练入口
+    └── run_pipeline.py # Unified training entrance
 ```
 
-## 数据
+## Data
 
-| 文件 | 内容 |
+| File | content |
 | --- | --- |
-| `data/X_train.csv` | ROW_ID、TS、ALLOCATION、GROUP、20 个 lag 的 RET 和 SIGNED_VOLUME、MEDIAN_DAILY_TURNOVER |
-| `data/y_train.csv` | ROW_ID 与连续收益目标 target |
-| `data/X_test.csv` | 测试输入特征 |
-| `data/sample_submission.csv` | 提交格式参考 |
+| `data/X_train.csv` | ROW_ID, TS, ALLOCATION, GROUP, 20 lags of RET and SIGNED_VOLUME, MEDIAN_DAILY_TURNOVER |
+| `data/y_train.csv` | ROW_ID and continuous revenue target target |
+| `data/X_test.csv` | Test input features |
+| `data/sample_submission.csv` | Submission format reference |
 
-输入和目标按 ROW_ID 对齐。评价时将 target 大于等于零视为正类，衡量收益方向准确率。
+Inputs and targets are aligned by ROW_ID. During evaluation, target greater than or equal to zero is regarded as a positive class, and the accuracy of the income direction is measured.
 
-`X_train.csv` 约 272 MB，通过 `.gitattributes` 配置为 Git LFS 文件。发布机器需要安装并启用 Git LFS；克隆时也应取得对应 LFS 数据。其余三个 CSV 是普通数据文件。
+`X_train.csv` is about 272 MB, configured as a Git LFS file via `.gitattributes`. Git LFS needs to be installed and enabled on the publishing machine; the corresponding LFS data should also be obtained when cloning. The remaining three CSVs are normal data files.
 
-## 环境
+## Environment
 
-使用 Python 3.10 或更新版本，在仓库根目录执行：
+Using Python 3.10 or newer, execute in the root directory of the repository:
 
 ```powershell
 python -m pip install -r requirements.txt
 ```
 
-VS Code 或 Jupyter 可打开 `analysis.ipynb`。Notebook 已保存展示输出，直接在 GitHub 阅读无需安装环境。
+VS Code or Jupyter can open `analysis.ipynb`. Notebook has saved display output and can be read directly on GitHub without installation environment.
 
-## 执行训练
+## Execute training
 
 ```powershell
 python scripts/run_pipeline.py --dry-run
 python scripts/run_pipeline.py
 ```
 
-默认依次训练 CatBoost、训练 GRU、搜索融合权重并生成提交。输入目录为 `data/`，输出目录为 `artifacts/`。自定义路径与设备：
+By default, CatBoost is trained, GRU is trained, fusion weights are searched, and submissions are generated. The input directory is `data/` and the output directory is `artifacts/`. Custom paths and devices:
 
 ```powershell
 python scripts/run_pipeline.py --data-dir data --output-dir artifacts --device cuda
 ```
 
-也可分阶段执行：
+It can also be executed in stages:
 
 ```powershell
 python scripts/run_pipeline.py --stage catboost
@@ -62,15 +62,15 @@ python scripts/run_pipeline.py --stage gru
 python scripts/run_pipeline.py --stage blend
 ```
 
-融合阶段要求前两个阶段已在同一输出目录生成 OOF 和测试分数。多 seed、多折及局部专家训练可能耗时；重复执行会写入同名结果，保留不同实验时请指定新的输出目录。
+The fusion stage requires that the previous two stages have generated OOF and test scores in the same output directory. Multi-seed, multi-fold, and local expert training may be time-consuming; repeated executions will write results with the same name. Please specify a new output directory when retaining different experiments.
 
-## 输出
+## Output
 
-| 路径 | 内容 |
+| path | content |
 | --- | --- |
-| `artifacts/catboost/` | CatBoost 权重、OOF、测试分数及指标 |
-| `artifacts/gru/` | GRU 权重、OOF、测试分数及指标 |
-| `artifacts/blend/` | 融合权重、搜索明细和预测 |
-| `artifacts/blend/preds_allocation_aware_linear_blend.csv` | 最终提交，字段 ROW_ID、prediction |
+| `artifacts/catboost/` | CatBoost weights, OOF, test scores and metrics |
+| `artifacts/gru/` | GRU weights, OOF, test scores and indicators |
+| `artifacts/blend/` | Fusion weights, search details and predictions |
+| `artifacts/blend/preds_allocation_aware_linear_blend.csv` | Final submission, fields ROW_ID, prediction |
 
-训练产物和本地历史实验被 `.gitignore` 排除，不随仓库发布。Notebook 保留少量汇总结果，不包含模型权重或逐行 OOF。依赖版本尚未锁定；训练入口已通过语法检查和命令预演，完整重训分数尚未核验。
+Training products and local historical experiments are excluded by `.gitignore` and are not released with the repository. Notebook retains a small number of summary results and does not include model weights or row-by-row OOF. The dependent version has not been locked; the training entry has passed the syntax check and command preview, and the complete retraining score has not yet been verified.
